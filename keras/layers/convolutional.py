@@ -47,7 +47,7 @@ class Convolution1D(Layer):
             If you don't specify anything, no activation is applied
             (ie. "linear" activation: a(x) = x).
         weights: list of numpy arrays to set as initial weights.
-        border_mode: 'valid' or 'same'.
+        border_mode: 'valid', 'same' or 'full'. ('full' requires the Theano backend.)
         subsample_length: factor by which to subsample output.
         W_regularizer: instance of [WeightRegularizer](../regularizers.md)
             (eg. L1 or L2 regularization), applied to the main weights matrix.
@@ -77,19 +77,18 @@ class Convolution1D(Layer):
         `steps` value might have changed due to padding.
     '''
     def __init__(self, nb_filter, filter_length,
-                 init='uniform', activation='linear', weights=None,
+                 init='glorot_uniform', activation=None, weights=None,
                  border_mode='valid', subsample_length=1,
                  W_regularizer=None, b_regularizer=None, activity_regularizer=None,
                  W_constraint=None, b_constraint=None,
                  bias=True, input_dim=None, input_length=None, **kwargs):
 
-        if border_mode not in {'valid', 'same'}:
+        if border_mode not in {'valid', 'same', 'full'}:
             raise Exception('Invalid border mode for Convolution1D:', border_mode)
         self.nb_filter = nb_filter
         self.filter_length = filter_length
         self.init = initializations.get(init, dim_ordering='th')
         self.activation = activations.get(activation)
-        assert border_mode in {'valid', 'same'}, 'border_mode must be in {valid, same}'
         self.border_mode = border_mode
         self.subsample_length = subsample_length
 
@@ -143,6 +142,7 @@ class Convolution1D(Layer):
         if self.initial_weights is not None:
             self.set_weights(self.initial_weights)
             del self.initial_weights
+        self.built = True
 
     def get_output_shape_for(self, input_shape):
         length = conv_output_length(input_shape[1],
@@ -218,7 +218,7 @@ class AtrousConvolution1D(Convolution1D):
             If you don't specify anything, no activation is applied
             (ie. "linear" activation: a(x) = x).
         weights: list of numpy arrays to set as initial weights.
-        border_mode: 'valid' or 'same'.
+        border_mode: 'valid', 'same' or 'full'. ('full' requires the Theano backend.)
         subsample_length: factor by which to subsample output.
         atrous_rate: Factor for kernel dilation. Also called filter_dilation
             elsewhere.
@@ -250,13 +250,13 @@ class AtrousConvolution1D(Convolution1D):
         `steps` value might have changed due to padding.
     '''
     def __init__(self, nb_filter, filter_length,
-                 init='uniform', activation='linear', weights=None,
+                 init='glorot_uniform', activation=None, weights=None,
                  border_mode='valid', subsample_length=1, atrous_rate=1,
                  W_regularizer=None, b_regularizer=None, activity_regularizer=None,
                  W_constraint=None, b_constraint=None,
                  bias=True, **kwargs):
 
-        if border_mode not in {'valid', 'same'}:
+        if border_mode not in {'valid', 'same', 'full'}:
             raise Exception('Invalid border mode for AtrousConv1D:', border_mode)
 
         self.atrous_rate = int(atrous_rate)
@@ -331,7 +331,7 @@ class Convolution2D(Layer):
             If you don't specify anything, no activation is applied
             (ie. "linear" activation: a(x) = x).
         weights: list of numpy arrays to set as initial weights.
-        border_mode: 'valid' or 'same'.
+        border_mode: 'valid', 'same' or 'full'. ('full' requires the Theano backend.)
         subsample: tuple of length 2. Factor by which to subsample output.
             Also called strides elsewhere.
         W_regularizer: instance of [WeightRegularizer](../regularizers.md)
@@ -366,21 +366,20 @@ class Convolution2D(Layer):
         `rows` and `cols` values might have changed due to padding.
     '''
     def __init__(self, nb_filter, nb_row, nb_col,
-                 init='glorot_uniform', activation='linear', weights=None,
+                 init='glorot_uniform', activation=None, weights=None,
                  border_mode='valid', subsample=(1, 1), dim_ordering='default',
                  W_regularizer=None, b_regularizer=None, activity_regularizer=None,
                  W_constraint=None, b_constraint=None,
                  bias=True, **kwargs):
         if dim_ordering == 'default':
             dim_ordering = K.image_dim_ordering()
-        if border_mode not in {'valid', 'same'}:
+        if border_mode not in {'valid', 'same', 'full'}:
             raise Exception('Invalid border mode for Convolution2D:', border_mode)
         self.nb_filter = nb_filter
         self.nb_row = nb_row
         self.nb_col = nb_col
         self.init = initializations.get(init, dim_ordering=dim_ordering)
         self.activation = activations.get(activation)
-        assert border_mode in {'valid', 'same'}, 'border_mode must be in {valid, same}'
         self.border_mode = border_mode
         self.subsample = tuple(subsample)
         assert dim_ordering in {'tf', 'th'}, 'dim_ordering must be in {tf, th}'
@@ -436,6 +435,7 @@ class Convolution2D(Layer):
         if self.initial_weights is not None:
             self.set_weights(self.initial_weights)
             del self.initial_weights
+        self.built = True
 
     def get_output_shape_for(self, input_shape):
         if self.dim_ordering == 'th':
@@ -570,7 +570,7 @@ class Deconvolution2D(Convolution2D):
             If you don't specify anything, no activation is applied
             (ie. "linear" activation: a(x) = x).
         weights: list of numpy arrays to set as initial weights.
-        border_mode: 'valid' or 'same'.
+        border_mode: 'valid', 'same' or 'full'. ('full' requires the Theano backend.)
         subsample: tuple of length 2. Factor by which to oversample output.
             Also called strides elsewhere.
         W_regularizer: instance of [WeightRegularizer](../regularizers.md)
@@ -609,7 +609,7 @@ class Deconvolution2D(Convolution2D):
         [3] [Deconvolutional Networks](http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf)
     '''
     def __init__(self, nb_filter, nb_row, nb_col, output_shape,
-                 init='glorot_uniform', activation='linear', weights=None,
+                 init='glorot_uniform', activation=None, weights=None,
                  border_mode='valid', subsample=(1, 1),
                  dim_ordering='default',
                  W_regularizer=None, b_regularizer=None, activity_regularizer=None,
@@ -617,7 +617,7 @@ class Deconvolution2D(Convolution2D):
                  bias=True, **kwargs):
         if dim_ordering == 'default':
             dim_ordering = K.image_dim_ordering()
-        if border_mode not in {'valid', 'same'}:
+        if border_mode not in {'valid', 'same', 'full'}:
             raise Exception('Invalid border mode for Deconvolution2D:', border_mode)
 
         self.output_shape_ = output_shape
@@ -665,7 +665,7 @@ class Deconvolution2D(Convolution2D):
         return output
 
     def get_config(self):
-        config = {'output_shape': self.output_shape}
+        config = {'output_shape': self.output_shape_}
         base_config = super(Deconvolution2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
@@ -703,7 +703,7 @@ class AtrousConvolution2D(Convolution2D):
             If you don't specify anything, no activation is applied
             (ie. "linear" activation: a(x) = x).
         weights: list of numpy arrays to set as initial weights.
-        border_mode: 'valid' or 'same'.
+        border_mode: 'valid', 'same' or 'full'. ('full' requires the Theano backend.)
         subsample: tuple of length 2. Factor by which to subsample output.
             Also called strides elsewhere.
         atrous_rate: tuple of length 2. Factor for kernel dilation.
@@ -742,7 +742,7 @@ class AtrousConvolution2D(Convolution2D):
         - [Multi-Scale Context Aggregation by Dilated Convolutions](https://arxiv.org/abs/1511.07122)
     '''
     def __init__(self, nb_filter, nb_row, nb_col,
-                 init='glorot_uniform', activation='linear', weights=None,
+                 init='glorot_uniform', activation=None, weights=None,
                  border_mode='valid', subsample=(1, 1),
                  atrous_rate=(1, 1), dim_ordering='default',
                  W_regularizer=None, b_regularizer=None, activity_regularizer=None,
@@ -751,7 +751,7 @@ class AtrousConvolution2D(Convolution2D):
         if dim_ordering == 'default':
             dim_ordering = K.image_dim_ordering()
 
-        if border_mode not in {'valid', 'same'}:
+        if border_mode not in {'valid', 'same', 'full'}:
             raise Exception('Invalid border mode for AtrousConv2D:', border_mode)
 
         self.atrous_rate = tuple(atrous_rate)
@@ -889,7 +889,7 @@ class SeparableConvolution2D(Layer):
         `rows` and `cols` values might have changed due to padding.
     '''
     def __init__(self, nb_filter, nb_row, nb_col,
-                 init='glorot_uniform', activation='linear', weights=None,
+                 init='glorot_uniform', activation=None, weights=None,
                  border_mode='valid', subsample=(1, 1),
                  depth_multiplier=1, dim_ordering='default',
                  depthwise_regularizer=None, pointwise_regularizer=None,
@@ -984,6 +984,7 @@ class SeparableConvolution2D(Layer):
         if self.initial_weights is not None:
             self.set_weights(self.initial_weights)
             del self.initial_weights
+        self.built = True
 
     def get_output_shape_for(self, input_shape):
         if self.dim_ordering == 'th':
@@ -1068,7 +1069,7 @@ class Convolution3D(Layer):
             If you don't specify anything, no activation is applied
             (ie. "linear" activation: a(x) = x).
         weights: list of Numpy arrays to set as initial weights.
-        border_mode: 'valid' or 'same'.
+        border_mode: 'valid', 'same' or 'full'. ('full' requires the Theano backend.)
         subsample: tuple of length 3. Factor by which to subsample output.
             Also called strides elsewhere.
             Note: 'subsample' is implemented by slicing the output of conv3d with strides=(1,1,1).
@@ -1104,7 +1105,7 @@ class Convolution3D(Layer):
     '''
 
     def __init__(self, nb_filter, kernel_dim1, kernel_dim2, kernel_dim3,
-                 init='glorot_uniform', activation='linear', weights=None,
+                 init='glorot_uniform', activation=None, weights=None,
                  border_mode='valid', subsample=(1, 1, 1), dim_ordering='default',
                  W_regularizer=None, b_regularizer=None, activity_regularizer=None,
                  W_constraint=None, b_constraint=None,
@@ -1112,7 +1113,7 @@ class Convolution3D(Layer):
         if dim_ordering == 'default':
             dim_ordering = K.image_dim_ordering()
 
-        if border_mode not in {'valid', 'same'}:
+        if border_mode not in {'valid', 'same', 'full'}:
             raise Exception('Invalid border mode for Convolution3D:', border_mode)
         self.nb_filter = nb_filter
         self.kernel_dim1 = kernel_dim1
@@ -1120,7 +1121,6 @@ class Convolution3D(Layer):
         self.kernel_dim3 = kernel_dim3
         self.init = initializations.get(init, dim_ordering=dim_ordering)
         self.activation = activations.get(activation)
-        assert border_mode in {'valid', 'same'}, 'border_mode must be in {valid, same}'
         self.border_mode = border_mode
         self.subsample = tuple(subsample)
         assert dim_ordering in {'tf', 'th'}, 'dim_ordering must be in {tf, th}'
@@ -1182,6 +1182,7 @@ class Convolution3D(Layer):
         if self.initial_weights is not None:
             self.set_weights(self.initial_weights)
             del self.initial_weights
+        self.built = True
 
     def get_output_shape_for(self, input_shape):
         if self.dim_ordering == 'th':
@@ -1667,6 +1668,7 @@ class Cropping1D(Layer):
 
     def build(self, input_shape):
         self.input_spec = [InputSpec(shape=input_shape)]
+        self.built = True
 
     def get_output_shape_for(self, input_shape):
         length = input_shape[1] - self.cropping[0] - self.cropping[1] if input_shape[1] is not None else None
@@ -1682,6 +1684,7 @@ class Cropping1D(Layer):
         config = {'cropping': self.cropping}
         base_config = super(Cropping1D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
+
 
 class Cropping2D(Layer):
     '''Cropping layer for 2D input (e.g. picture).
@@ -1735,6 +1738,7 @@ class Cropping2D(Layer):
 
     def build(self, input_shape):
         self.input_spec = [InputSpec(shape=input_shape)]
+        self.built = True
 
     def get_output_shape_for(self, input_shape):
         if self.dim_ordering == 'th':
@@ -1767,6 +1771,7 @@ class Cropping2D(Layer):
         config = {'cropping': self.cropping}
         base_config = super(Cropping2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
+
 
 class Cropping3D(Layer):
     '''Cropping layer for 3D data (e.g. spatial or saptio-temporal).
@@ -1807,6 +1812,7 @@ class Cropping3D(Layer):
 
     def build(self, input_shape):
         self.input_spec = [InputSpec(shape=input_shape)]
+        self.built = True
 
     def get_output_shape_for(self, input_shape):
         if self.dim_ordering == 'th':

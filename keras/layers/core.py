@@ -96,6 +96,37 @@ class Dropout(Layer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
+class SpatialDropout1D(Dropout):
+    '''This version performs the same function as Dropout, however it drops
+    entire 1D feature maps instead of individual elements. If adjacent frames
+    within feature maps are strongly correlated (as is normally the case in
+    early convolution layers) then regular dropout will not regularize the
+    activations and will otherwise just result in an effective learning rate
+    decrease. In this case, SpatialDropout1D will help promote independence
+    between feature maps and should be used instead.
+
+    # Arguments
+        p: float between 0 and 1. Fraction of the input units to drop.
+
+    # Input shape
+        3D tensor with shape:
+        `(samples, timesteps, channels)`
+
+    # Output shape
+        Same as input
+
+    # References
+        - [Efficient Object Localization Using Convolutional Networks](https://arxiv.org/pdf/1411.4280.pdf)
+    '''
+    def __init__(self, p, **kwargs):
+        super(SpatialDropout1D, self).__init__(p, **kwargs)
+
+    def _get_noise_shape(self, x):
+        input_shape = K.shape(x)
+        noise_shape = (input_shape[0], 1, input_shape[2])
+        return noise_shape
+    
+    
 class SpatialDropout2D(Dropout):
     '''This version performs the same function as Dropout, however it drops
     entire 2D feature maps instead of individual elements. If adjacent pixels
@@ -661,7 +692,8 @@ class Dense(Layer):
     # Output shape
         2D tensor with shape: `(nb_samples, output_dim)`.
     '''
-    def __init__(self, output_dim, init='glorot_uniform', activation='linear', weights=None,
+    def __init__(self, output_dim, init='glorot_uniform',
+                 activation=None, weights=None,
                  W_regularizer=None, b_regularizer=None, activity_regularizer=None,
                  W_constraint=None, b_constraint=None,
                  bias=True, input_dim=None, **kwargs):
@@ -722,6 +754,7 @@ class Dense(Layer):
         if self.initial_weights is not None:
             self.set_weights(self.initial_weights)
             del self.initial_weights
+        self.built = True
 
     def call(self, x, mask=None):
         output = K.dot(x, self.W)
@@ -890,6 +923,7 @@ class MaxoutDense(Layer):
         if self.initial_weights is not None:
             self.set_weights(self.initial_weights)
             del self.initial_weights
+        self.built = True
 
     def get_output_shape_for(self, input_shape):
         assert input_shape and len(input_shape) == 2
@@ -962,7 +996,7 @@ class Highway(Layer):
         - [Highway Networks](http://arxiv.org/pdf/1505.00387v2.pdf)
     '''
     def __init__(self, init='glorot_uniform', transform_bias=-2,
-                 activation='linear', weights=None,
+                 activation=None, weights=None,
                  W_regularizer=None, b_regularizer=None, activity_regularizer=None,
                  W_constraint=None, b_constraint=None,
                  bias=True, input_dim=None, **kwargs):
@@ -1027,6 +1061,7 @@ class Highway(Layer):
         if self.initial_weights is not None:
             self.set_weights(self.initial_weights)
             del self.initial_weights
+        self.built = True
 
     def call(self, x, mask=None):
         y = K.dot(x, self.W_carry)
@@ -1105,7 +1140,7 @@ class TimeDistributedDense(Layer):
     '''
 
     def __init__(self, output_dim,
-                 init='glorot_uniform', activation='linear', weights=None,
+                 init='glorot_uniform', activation=None, weights=None,
                  W_regularizer=None, b_regularizer=None, activity_regularizer=None,
                  W_constraint=None, b_constraint=None,
                  bias=True, input_dim=None, input_length=None, **kwargs):
@@ -1167,6 +1202,7 @@ class TimeDistributedDense(Layer):
         if self.initial_weights is not None:
             self.set_weights(self.initial_weights)
             del self.initial_weights
+        self.built = True
 
     def get_output_shape_for(self, input_shape):
         return (input_shape[0], input_shape[1], self.output_dim)

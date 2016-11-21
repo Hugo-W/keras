@@ -314,6 +314,10 @@ class EarlyStopping(Callback):
 
     # Arguments
         monitor: quantity to be monitored.
+        min_delta: minimum change in the monitored quantity
+            to qualify as an improvement, i.e. an absolute
+            change of less than min_delta, will count as no
+            improvement.
         patience: number of epochs with no improvement
             after which training will be stopped.
         verbose: verbosity mode.
@@ -325,13 +329,15 @@ class EarlyStopping(Callback):
             mode, the direction is automatically inferred
             from the name of the monitored quantity.
     '''
-    def __init__(self, monitor='val_loss', patience=0, verbose=0, mode='auto'):
+    def __init__(self, monitor='val_loss', min_delta=0, patience=0, verbose=0, mode='auto'):
         super(EarlyStopping, self).__init__()
 
         self.monitor = monitor
         self.patience = patience
         self.verbose = verbose
+        self.min_delta = min_delta
         self.wait = 0
+        self.stopped_epoch = 0
 
         if mode not in ['auto', 'min', 'max']:
             warnings.warn('EarlyStopping mode %s is unknown, '
@@ -349,6 +355,11 @@ class EarlyStopping(Callback):
             else:
                 self.monitor_op = np.less
 
+        if self.monitor_op == np.greater:
+            self.min_delta *= 1
+        else:
+            self.min_delta *= -1
+
     def on_train_begin(self, logs={}):
         self.wait = 0       # Allow instances to be re-used
         self.best = np.Inf if self.monitor_op == np.less else -np.Inf
@@ -359,15 +370,18 @@ class EarlyStopping(Callback):
             warnings.warn('Early stopping requires %s available!' %
                           (self.monitor), RuntimeWarning)
 
-        if self.monitor_op(current, self.best):
+        if self.monitor_op(current - self.min_delta, self.best):
             self.best = current
             self.wait = 0
         else:
             if self.wait >= self.patience:
-                if self.verbose > 0:
-                    print('Epoch %05d: early stopping' % (epoch))
+                self.stopped_epoch = epoch
                 self.model.stop_training = True
             self.wait += 1
+
+    def on_train_end(self, logs={}):
+        if self.stopped_epoch > 0 and self.verbose > 0:
+            print('Epoch %05d: early stopping' % (self.stopped_epoch))
 
 
 class RemoteMonitor(Callback):
@@ -422,7 +436,11 @@ class LearningRateScheduler(Callback):
         assert hasattr(self.model.optimizer, 'lr'), \
             'Optimizer must have a "lr" attribute.'
         lr = self.schedule(epoch)
-        assert type(lr) == float, 'The output of the "schedule" function should be float.'
+
+        if not isinstance(lr, (float, np.float32, np.float64)):
+            raise ValueError('The output of the "schedule" function '
+                             'should be float.')
+
         K.set_value(self.model.optimizer.lr, lr)
 
 
@@ -530,7 +548,7 @@ class TensorBoard(Callback):
                 continue
             summary = tf.Summary()
             summary_value = summary.value.add()
-            summary_value.simple_value = value
+            summary_value.simple_value = value.item()
             summary_value.tag = name
             self.writer.add_summary(summary, epoch)
         self.writer.flush()
