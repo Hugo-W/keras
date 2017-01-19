@@ -139,9 +139,6 @@ PAGES = [
             core.Dense,
             core.Activation,
             core.Dropout,
-            core.SpatialDropout1D,
-            core.SpatialDropout2D,
-            core.SpatialDropout3D,
             core.Flatten,
             core.Reshape,
             core.Permute,
@@ -152,7 +149,6 @@ PAGES = [
             core.Masking,
             core.Highway,
             core.MaxoutDense,
-            core.TimeDistributedDense,
         ],
     },
     {
@@ -316,7 +312,7 @@ def get_function_signature(function, method=True):
     for a in args:
         st += str(a) + ', '
     for a, v in kwargs:
-        if type(v) == str:
+        if isinstance(v, str):
             v = '\'' + v + '\''
         st += str(a) + '=' + str(v) + ', '
     if kwargs or args:
